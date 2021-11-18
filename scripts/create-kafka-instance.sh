@@ -29,8 +29,7 @@ fi
 rhoas kafka create --name=lucamolteni-managedconnector
 # rhoas kafka describe
 
-SERVICEACCOUNT=$(cat ./service-acct-credentials.json | jq -r '.clientID')
-export SERVICEACCOUNT
+SERVICEACCOUNT_ID=$(cat ./service-acct-credentials.json | jq -r '.clientID')
 
 printf "\nPolling kafka creation every $interval_in_seconds seconds, until 'ready'\n"
 while true;
@@ -38,20 +37,19 @@ do
     status=$(rhoas kafka list | grep lucamolteni-managedconnector | awk '{print $5}');
     printf "\r$(date +%H:%M:%S): $status";
     if [ "$status" = "ready" ]; then
-        printf r"Kafka Instance provisioned\n";
+        printf \nKafka Instance provisioned\n";
         break;
     fi;
     sleep $interval_in_seconds;
 done
 
-rhoas kafka acl grant-access -y --consumer --producer --service-account $SERVICEACCOUNT --topic-prefix slacktopic  --group all
+rhoas kafka acl grant-access -y --consumer --producer --service-account $SERVICEACCOUNT_ID --topic-prefix slacktopic  --group all
 
 BASE_URL=$(rhoas kafka describe --name=lucamolteni-managedconnector | jq -r '.bootstrap_server_host')
 export BASE_URL
 
-PASSWORD=$(cat ./service-acct-credentials.json | jq -r '.clientSecret')
-export PASSWORD
+SERVICEACCOUNT_SECRET=$(cat ./service-acct-credentials.json | jq -r '.clientSecret')
 
 rhoas kafka topic create --name=slacktopic
 
-echo "Kafk\n BASE_URL: $BASE_URL \n SERVICEACCOUNT: $SERVICEACCOUNT"
+echo "Kafka Instance created, now set\n\texport KAFKA_BASE_PATH=$BASE_URL\n\texport SERVICEACCOUNT_ID=$SERVICEACCOUNT_ID\n\texport SERVICEACCOUNT_SECRET=$SERVICEACCOUNT_SECRET"
