@@ -1,39 +1,33 @@
 package com.redhat.service;
 
 import java.io.ByteArrayInputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Scanner;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import com.redhat.service.dto.request.Connector;
-import com.redhat.service.dto.request.ConnectorResponseDTO;
+import com.openshift.cloud.api.connector.ConnectorsApi;
+import com.openshift.cloud.api.connector.invoker.ApiClient;
+import com.openshift.cloud.api.connector.invoker.ApiException;
+import com.openshift.cloud.api.connector.invoker.Configuration;
+import com.openshift.cloud.api.connector.invoker.auth.HttpBearerAuth;
+import com.openshift.cloud.api.connector.models.ClusterTarget;
+import com.openshift.cloud.api.connector.models.Connector;
+import com.openshift.cloud.api.connector.models.ConnectorAllOfMetadata;
+import com.openshift.cloud.api.connector.models.KafkaConnectionSettings;
 import com.redhat.service.dto.request.ConnectorSpec;
 import com.redhat.service.dto.request.ConnectorSpecKafka;
-import com.redhat.service.dto.request.CreateConnectorRequest;
-import com.redhat.service.dto.request.DeploymentLocation;
-import com.redhat.service.dto.request.Kafka;
-import com.redhat.service.dto.request.Metadata;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
-import org.jboss.logging.Logger;
+import com.redhat.service.dto.request.SlackConnector;
 
 public class ManagedConnectorServiceApplication {
 
-    static String bearerToken;
+    String bearerToken;
     String baseUrl;
     String kafkaUrl;
     String serviceAccountId;
     String serviceAccountSecret;
 
-    private static final Logger LOG = Logger.getLogger(ManagedConnectorServiceApplication.class);
     private String webhookUrl;
-
-    // Used for HTTP Authentication
-    public static String bearerToken() {
-        return "Bearer " + bearerToken.trim();
-    }
 
     public static void main(String[] args) throws Exception {
 
@@ -54,46 +48,44 @@ public class ManagedConnectorServiceApplication {
         managedConnectorServiceApplication.serviceAccountId = args[3];
         managedConnectorServiceApplication.serviceAccountSecret = args[4];
         managedConnectorServiceApplication.webhookUrl = args[5];
-        ConnectorResponseDTO slackConnector = managedConnectorServiceApplication.createSlackConnector();
+        Connector slackConnector = managedConnectorServiceApplication.createSlackConnector();
         do {
             slackConnector = managedConnectorServiceApplication.pollSlackConnector(slackConnector);
-        } while (!slackConnector.getStatus().equals("ready"));
+        } while (!"ready".equals(slackConnector.getStatus()));
     }
 
-    private ConnectorResponseDTO pollSlackConnector(ConnectorResponseDTO connector) throws URISyntaxException, InterruptedException {
-        URI apiUri = new URI(baseUrl);
+    private Connector pollSlackConnector(Connector connector) throws InterruptedException, ApiException {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+        defaultClient.setBasePath(baseUrl);
 
-        ManagedConnectorService reviewSvc = RestClientBuilder.newBuilder()
-                .baseUri(apiUri)
-                .build(ManagedConnectorService.class);
+        HttpBearerAuth Bearer = (HttpBearerAuth) defaultClient.getAuthentication("Bearer");
+        Bearer.setBearerToken(bearerToken);
 
-        ConnectorResponseDTO response = reviewSvc.connector(connector.getId());
-        System.out.println(response.getStatus());
+        ConnectorsApi connectorsAPI = createConnectorsAPI();
+        Connector fetchedConnector = connectorsAPI.getConnector(connector.getId(), "");
+        System.out.println(fetchedConnector.getStatus());
         Thread.sleep(5000);
-        return response;
+        return fetchedConnector;
     }
 
-    private ConnectorResponseDTO createSlackConnector() throws Exception {
-        URI apiUri = new URI(baseUrl);
+    private Connector createSlackConnector() throws Exception {
+        ConnectorsApi apiInstance = createConnectorsAPI();
+        // Boolean | Perform the action in an asynchronous manner
+        Connector createConnectorRequest = new Connector(); // Connector | Connector data
 
-        ManagedConnectorService reviewSvc = RestClientBuilder.newBuilder()
-                .baseUri(apiUri)
-                .build(ManagedConnectorService.class);
-
-        CreateConnectorRequest createConnectorRequest = new CreateConnectorRequest();
-
-        Metadata metadata = new Metadata();
+        ConnectorAllOfMetadata metadata = new ConnectorAllOfMetadata();
         metadata.setName("openbridge-slack-connector");
+        metadata.setKafkaId("kafkaId-ignored");
         createConnectorRequest.setMetadata(metadata);
 
-        DeploymentLocation deploymentLocation = new DeploymentLocation();
+        ClusterTarget deploymentLocation = new ClusterTarget();
         deploymentLocation.setKind("addon");
         deploymentLocation.setClusterId("c4ovtrsldcav5gaeqkn0");
         createConnectorRequest.setDeploymentLocation(deploymentLocation);
 
         createConnectorRequest.setConnectorTypeId("slack_sink_0.1");
 
-        Kafka kafka = new Kafka();
+        KafkaConnectionSettings kafka = new KafkaConnectionSettings();
         kafka.setBootstrapServer(kafkaUrl);
         kafka.setClientId(serviceAccountId);
         kafka.setClientSecret(serviceAccountSecret);
@@ -105,7 +97,7 @@ public class ManagedConnectorServiceApplication {
         connectorSpecKafka.setTopic("slacktopic");
         connectorSpec.setConnectorSpecKafka(connectorSpecKafka);
 
-        Connector connector = new Connector();
+        SlackConnector connector = new SlackConnector();
         connector.setChannel("mc");
         connector.setWebhookUrl(webhookUrl);
         connectorSpec.setConnector(connector);
@@ -113,7 +105,7 @@ public class ManagedConnectorServiceApplication {
         createConnectorRequest.setConnectorSpec(connectorSpec);
 
         try {
-            ConnectorResponseDTO connectorResult = reviewSvc.createConnector(createConnectorRequest, true);
+            Connector connectorResult = apiInstance.createConnector(true, createConnectorRequest);
             System.out.println("Connector created: " + connectorResult);
             return connectorResult;
         } catch (WebApplicationException e) {
@@ -132,5 +124,15 @@ public class ManagedConnectorServiceApplication {
 
             throw e;
         }
+    }
+
+    private ConnectorsApi createConnectorsAPI() {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+        defaultClient.setBasePath(baseUrl);
+
+        HttpBearerAuth Bearer = (HttpBearerAuth) defaultClient.getAuthentication("Bearer");
+        Bearer.setBearerToken(bearerToken);
+
+        return new ConnectorsApi(defaultClient);
     }
 }

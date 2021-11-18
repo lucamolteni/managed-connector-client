@@ -28,7 +28,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
     "username"
 })
 @Generated("jsonschema2pojo")
-public class Connector {
+public class SlackConnector {
 
     /**
      * Channel

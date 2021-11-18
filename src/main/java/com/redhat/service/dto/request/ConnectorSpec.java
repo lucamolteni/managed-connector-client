@@ -12,7 +12,7 @@ public class ConnectorSpec {
      *
      */
     @JsonProperty("connector")
-    private Connector connector;
+    private SlackConnector connector;
 
     @JsonProperty("kafka")
     private ConnectorSpecKafka connectorSpecKafka;
@@ -34,7 +34,7 @@ public class ConnectorSpec {
      *
      */
     @JsonProperty("connector")
-    public Connector getConnector() {
+    public SlackConnector getConnector() {
         return connector;
     }
 
@@ -45,7 +45,7 @@ public class ConnectorSpec {
      *
      */
     @JsonProperty("connector")
-    public void setConnector(Connector connector) {
+    public void setConnector(SlackConnector connector) {
         this.connector = connector;
     }
 

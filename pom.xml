@@ -53,6 +53,14 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
+
+
+    <dependency>
+      <groupId>com.redhat.cloud</groupId>
+      <artifactId>connector-management-sdk</artifactId>
+      <version>0.0.3</version>
+    </dependency>
+
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
