@@ -11,7 +11,7 @@ import com.openshift.cloud.api.connector.invoker.ApiClient;
 import com.openshift.cloud.api.connector.invoker.ApiException;
 import com.openshift.cloud.api.connector.invoker.Configuration;
 import com.openshift.cloud.api.connector.invoker.auth.HttpBearerAuth;
-import com.openshift.cloud.api.connector.models.ClusterTarget;
+import com.openshift.cloud.api.connector.models.AddonClusterTarget;
 import com.openshift.cloud.api.connector.models.Connector;
 import com.openshift.cloud.api.connector.models.ConnectorAllOfMetadata;
 import com.openshift.cloud.api.connector.models.KafkaConnectionSettings;
@@ -78,7 +78,7 @@ public class ManagedConnectorServiceApplication {
         metadata.setKafkaId("kafkaId-ignored");
         createConnectorRequest.setMetadata(metadata);
 
-        ClusterTarget deploymentLocation = new ClusterTarget();
+        AddonClusterTarget deploymentLocation = new AddonClusterTarget();
         deploymentLocation.setKind("addon");
         deploymentLocation.setClusterId("c4ovtrsldcav5gaeqkn0");
         createConnectorRequest.setDeploymentLocation(deploymentLocation);
