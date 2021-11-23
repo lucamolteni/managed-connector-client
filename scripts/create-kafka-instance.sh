@@ -37,7 +37,7 @@ do
     status=$(rhoas kafka list | grep lucamolteni-managedconnector | awk '{print $5}');
     printf "\r$(date +%H:%M:%S): $status";
     if [ "$status" = "ready" ]; then
-        printf \nKafka Instance provisioned\n";
+        printf "\nKafka Instance provisioned\n";
         break;
     fi;
     sleep $interval_in_seconds;
